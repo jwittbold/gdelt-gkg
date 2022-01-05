@@ -1,0 +1,80 @@
+
+[PROJECT]
+DOWNLOAD_PATH = '/Users/jackwittbold/Desktop/gdelt_data/TEST_RUN/raw_gkg'
+EXTRACT_PATH = '/Users/jackwittbold/Desktop/gdelt_data/TEST_RUN/raw_gkg'
+
+
+[SCRAPER]
+# Enter date as YEAR-MONTH-DAY format, e.g., 2021-09-01
+# START_DATE corresponds to the date from which you would like to download GDELT GKG records.
+# END_DATE by default is set to 'now' to download all available records. 
+# END_DATE can be set to any date later than START_DATE in order to download a limited range of dates.
+# FROM_LAST if set to 'true' will use the last GKG record timestamp as start date 
+START_DATE = '2021-10-21'
+END_DATE = 'now'
+FROM_LAST = true
+DOWNLOAD_METRICS = '/Users/jackwittbold/Desktop/gdelt_data/TEST_RUN/download_metrics'
+
+
+[AZURE]
+PREFIX = 'wasbs://'
+CONTAINER = 'gkg_data'
+STORAGE_ACC = 'gdelt'
+SUFFIX = '.blob.core.windows.net'
+
+
+[UPDATE]
+# PERIOD set to 'daily' (recommended), 'hourly', or '15min' to control how often ETL is performed on raw GKG files.
+# CHOOSE ONE 
+# 'daily' will perform ETL once per day at 23:55:00 GMT. Avoids small file problem.
+# 'hourly' will incur increased compute cost and smaller files but more recent data.
+# '15min' will perform ETL on the quarter hour as soon as new GKG files are published. Small files will need to be compacted downstream.
+PERIOD = 'daily'
+
+
+[ETL]
+  [ETL.PATHS]
+    # METRICS = '/Users/jackwittbold/Desktop/gdelt_data/metrics'
+    # IN_PATH = '/Users/jackwittbold/Desktop/gdelt_data/write_transformed_parquet_test/in'
+    # OUT_PATH = '/Users/jackwittbold/Desktop/gdelt_data/etl_out'
+    PIPELINE_METRICS = '/Users/jackwittbold/Desktop/gdelt_data/TEST_RUN/pipeline_metrics'
+    IN_PATH = '/Users/jackwittbold/Desktop/gdelt_data/TEST_RUN/raw_gkg'
+    OUT_PATH = '/Users/jackwittbold/Desktop/gdelt_data/TEST_RUN/transformed_gkg'
+    
+    
+    # IN_PATH = '/Users/jackwittbold/Desktop/gdelt_data/write_transformed_parquet_test/one_day'
+    # IN_PATH = '/gdelt_test/raw/one_day'
+    # OUT_PATH = '/gdelt_test/transformed/one_day'
+    # IN_PATH = '/Users/jackwittbold/Desktop/gdelt_data/possibly_fucked'
+    # OUT_PATH = '/gdelt_test/batch_writer/one_day/out/after_fix/after_cache_trans8_eng5_max_30k'
+    # OUT_PATH = '/gdelt_test/batch_writer/few_files'
+    # OUT_PATH = 'file:///Users/jackwittbold/Desktop/gdelt_data/write_transformed_parquet_test/a_few_out_for_streaming'
+    # OUT_PATH = '/Users/jackwittbold/Desktop/gdelt_data/write_transformed_parquet_test/out'
+    # OUT_PATH = '/gdelt_test/batch_writer/streaming_test'
+
+
+# PATHS = { INPUT_PATH = '/Users/jackwittbold/Desktop/gdelt_data/write_transformed_parquet_test/one_day', 'OUTPUT_PATH' = '/gdelt_test/batch_writer/one_day/out'}
+
+
+# alternativeCalledInlineTable = { property = "Value", "etc" = "You got it." }
+
+
+
+# [EOD]
+# QUOTE = '/quote/trade_dt='
+# TRADE = '/trade/trade_dt='
+# ANALYTIC = '/analytic'
+# REPORT = '/date='
+# LATER_DATE = '2020-08-06'
+# EARLIER_DATE = '2020-08-05'
+
+# FEEDS = [
+#         # 'http://data.gdeltproject.org/gdeltv2/lastupdate.txt',
+#         # 'http://data.gdeltproject.org/gdeltv2/lastupdate-translation.txt'
+#         'http://data.gdeltproject.org/gdeltv2/masterfilelist.txt',
+#         'http://data.gdeltproject.org/gdeltv2/masterfilelist-translation.txt'
+#         ]
+
+# [SPARK]
+# MASTER = ''
+# APPNAME = ''
