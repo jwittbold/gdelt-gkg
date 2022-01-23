@@ -1,8 +1,10 @@
 # GDELT GKG
 
-***Global Database of Events, Language, and Tone | Global Knowledge Graph***
+***Global Database of Events, Language, and Tone -- Global Knowledge Graph***
 
 
+
+### GDELT Pipeline Deployment Architecture
 ![deployment_architecture](/diagrams/gkg_pipeline_deployment_architecture_sm.png)
 
 
