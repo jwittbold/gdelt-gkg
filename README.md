@@ -1,4 +1,5 @@
-# gdelt-gkg
+# GDELT GKG 
+## Global Database of Events, Language, and Tone - Global Knowledge Graph
 
 
 ![deployment_architecture](/diagrams/gkg_pipeline_deployment_architecture_sm.png)
