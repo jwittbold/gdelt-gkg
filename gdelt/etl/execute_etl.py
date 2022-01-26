@@ -1,27 +1,24 @@
 import os
 import sys
 import logging
+import glob
+import datetime
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.types import TimestampType
-import glob
-import datetime
-
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from config.toml_config import config
 from schemas.gkg_schema import gkg_schema
 from etl.parse_gkg import gkg_parser
-from etl.parse_downloads import download_parser
 
 
-local_fs_prefix = 'file://'
 
+FS_PREFIX = config['FS']['PREFIX']
 # BLOB_BASE = f"{config['AZURE']['PREFIX']}{config['AZURE']['CONTAINER']}@{config['AZURE']['STORAGE_ACC']}{config['AZURE']['SUFFIX']}"
-DOWNLOAD_PATH = config['PROJECT']['DOWNLOAD_PATH']
-
-DOWNLOAD_METRICS = f"{config['SCRAPER']['DOWNLOAD_METRICS']}"
-PIPELINE_METRICS = f"{config['ETL']['PATHS']['PIPELINE_METRICS']}"
+DOWNLOAD_PATH = config['ETL']['PATHS']['DOWNLOAD_PATH']
+DOWNLOAD_METRICS = config['SCRAPER']['DOWNLOAD_METRICS']
+PIPELINE_METRICS = config['ETL']['PATHS']['PIPELINE_METRICS']
 
 
 # build spark
@@ -57,12 +54,11 @@ class GkgBatchWriter:
 
     def batch_processor(self):
 
-        local_fs_prefix = 'file://'
 
         processor = GkgBatchWriter()
-        input_path = self.config['ETL']['PATHS']['IN_PATH']   
+        input_path = self.config['ETL']['PATHS']['RAW_IN']   
 
-        processor.period = self.config['UPDATE']['PERIOD']
+        processor.period = self.config['BATCH']['PERIOD']
         
         processor.gkg_glob = glob.glob(f'{input_path}/*.csv')
 
@@ -101,7 +97,7 @@ class GkgBatchWriter:
                     etl_mode = 'daily'
 
                 else:
-                    raise ValueError("UPDATE PERIOD must be set to 'daily', 'hourly', or '15min' within config.toml file.")
+                    raise ValueError("BATCH PERIOD must be set to 'daily', 'hourly', or '15min' within config.toml file.")
 
                 if gkg_key not in processor.gkg_dict:
 
@@ -125,12 +121,12 @@ class GkgBatchWriter:
                         suffix = key[9:]
                     
                     else:
-                        raise ValueError("UPDATE PERIOD must be set to 'daily', 'hourly', or '15min' within config.toml file.")
+                        raise ValueError("BATCH PERIOD must be set to 'daily', 'hourly', or '15min' within config.toml file.")
 
                     if gkg_file.startswith(f'{processor.raw_input_path}/{prefix}') and suffix == processor.gkg_version:
 
-                        # concat paths to for use as large rdd
-                        processor.gkg_dict[key] += f'{local_fs_prefix}{gkg_file},'
+                        # concat paths for use as large rdd
+                        processor.gkg_dict[key] += f'{FS_PREFIX}{gkg_file},'
 
             else:
                 print('GKG files already processed, passing.')
@@ -141,7 +137,7 @@ class GkgBatchWriter:
     def check_processed(self):
 
         if os.path.exists(PIPELINE_METRICS):
-            pipeline_metrics_df = spark.read.format('parquet').load(f'{local_fs_prefix}{PIPELINE_METRICS}/*.parquet') 
+            pipeline_metrics_df = spark.read.format('parquet').load(f'{FS_PREFIX}{PIPELINE_METRICS}/*.parquet') 
             unique_metrics_df = pipeline_metrics_df.dropDuplicates(['file_name', 'gkg_timestamp'])
 
             processed_gkg_array = unique_metrics_df.select('file_name').rdd.flatMap(lambda row: row).collect()
@@ -155,12 +151,12 @@ class GkgBatchWriter:
 
     def write_batch(self):
 
-        etl_out_path = self.config['ETL']['PATHS']['OUT_PATH']
+        etl_out_path = self.config['ETL']['PATHS']['TRANSFORMED_OUT']
 
         rdd_paths = GkgBatchWriter().batch_processor()
 
         writer = GkgBatchWriter()
-        writer.period = self.config['UPDATE']['PERIOD']
+        writer.period = self.config['BATCH']['PERIOD']
 
         processed_gkg = GkgBatchWriter().check_processed()
 
@@ -208,13 +204,14 @@ class GkgBatchWriter:
             ########################################################################################   
 
             if writer.period == '15min' or writer.period == 'hourly':
-                print(f'Writing GKG records in {writer.period} mode')
+                print(f'Writing GKG records in {(writer.period).upper()} mode')
                 gkg_block_df\
                     .coalesce(1) \
                     .write \
                     .mode('append') \
-                    .parquet(f'{local_fs_prefix}{etl_out_path}/{version}/{writer.year}/{writer.month}/{writer.day}/')
-                print(f'Successfully wrote ** {version} ** DF in {writer.period} mode to path: {etl_out_path}/{version}/{writer.year}/{writer.month}/{writer.day}')
+                    .parquet(f'{FS_PREFIX}{etl_out_path}/{version}/{writer.year}/{writer.month}/{writer.day}/')
+                print(f'Successfully wrote ** {version.upper()} ** DF in {(writer.period).upper()} \
+                        mode to path: {etl_out_path}/{version}/{writer.year}/{writer.month}/{writer.day}')
 
 
 
@@ -225,7 +222,7 @@ class GkgBatchWriter:
                 gkg_batch_df = spark.read \
                                 .format('parquet') \
                                 .schema(gkg_schema) \
-                                .load(f'{local_fs_prefix}{etl_out_path}/{version}/{writer.year}/{writer.month}/{writer.day}/*.parquet')
+                                .load(f'{FS_PREFIX}{etl_out_path}/{version}/{writer.year}/{writer.month}/{writer.day}/*.parquet')
                 
 
                 gkg_metrics = gkg_batch_df \
@@ -238,7 +235,7 @@ class GkgBatchWriter:
                                     .withColumnRenamed('count', 'total_rows')
                                                         
 
-                download_metrics_df = spark.read.parquet(f'{local_fs_prefix}{DOWNLOAD_METRICS}/*.parquet')
+                download_metrics_df = spark.read.parquet(f'{FS_PREFIX}{DOWNLOAD_METRICS}/*.parquet')
 
 
                 joined_metrics = download_metrics_df.join(F.broadcast(gkg_metrics),
@@ -258,7 +255,7 @@ class GkgBatchWriter:
                     .write \
                     .mode('append') \
                     .format('parquet') \
-                    .save(f'{local_fs_prefix}{PIPELINE_METRICS}') 
+                    .save(f'{FS_PREFIX}{PIPELINE_METRICS}') 
                 
 
 
@@ -268,14 +265,15 @@ class GkgBatchWriter:
             ########################################################################################     
             
             else:
-                print(f'Writing GKG records in {writer.period} mode')
+                print(f'Writing GKG records in {(writer.period).upper()} mode')
                 gkg_block_df \
                         .repartition(5) \
                         .write \
                         .option('maxRecordsPerFile', 30000) \
                         .mode('append') \
-                        .parquet(f'{local_fs_prefix}{etl_out_path}/{version}/{writer.year}/{writer.month}/{writer.day}/')
-                print(f'Successfully wrote ** {version} ** DF in {writer.period} mode to path: {etl_out_path}/{version}/{writer.year}/{writer.month}/{writer.day}')
+                        .parquet(f'{FS_PREFIX}{etl_out_path}/{version}/{writer.year}/{writer.month}/{writer.day}/')
+                print(f'Successfully wrote ** {version.upper()} ** DF in {(writer.period).upper()} \
+                        mode to path: {etl_out_path}/{version}/{writer.year}/{writer.month}/{writer.day}')
                 
 
 
@@ -286,7 +284,7 @@ class GkgBatchWriter:
                 gkg_batch_df = spark.read \
                                 .format('parquet') \
                                 .schema(gkg_schema) \
-                                .load(f'{local_fs_prefix}{etl_out_path}/{version}/{writer.year}/{writer.month}/{writer.day}/*.parquet') 
+                                .load(f'{FS_PREFIX}{etl_out_path}/{version}/{writer.year}/{writer.month}/{writer.day}/*.parquet') 
                 
 
                 gkg_metrics = gkg_batch_df \
@@ -299,7 +297,7 @@ class GkgBatchWriter:
                                     .withColumnRenamed('count', 'total_rows') 
                                                         
 
-                download_metrics_df = spark.read.parquet(f'{local_fs_prefix}{DOWNLOAD_METRICS}/*.parquet')
+                download_metrics_df = spark.read.parquet(f'{FS_PREFIX}{DOWNLOAD_METRICS}/*.parquet')
 
                 
                 # rewrite as a right join broadcast batch df
@@ -326,7 +324,7 @@ class GkgBatchWriter:
                     .write \
                     .mode('append') \
                     .format('parquet') \
-                    .save(f'{local_fs_prefix}{PIPELINE_METRICS}') 
+                    .save(f'{FS_PREFIX}{PIPELINE_METRICS}') 
 
 
 
@@ -336,7 +334,7 @@ GkgBatchWriter().write_batch()
 
 
 print('AS READ IN AS PARQUET WITH DROP DUPLICATES')
-pipeline_metrics_df = spark.read.format('parquet').load(f'{local_fs_prefix}{PIPELINE_METRICS}/*.parquet') 
+pipeline_metrics_df = spark.read.format('parquet').load(f'{FS_PREFIX}{PIPELINE_METRICS}/*.parquet') 
 unique_metrics_df = pipeline_metrics_df.dropDuplicates(['file_name', 'gkg_timestamp'])
 unique_metrics_df.show(truncate=False)
 print(pipeline_metrics_df.count())
