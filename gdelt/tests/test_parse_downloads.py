@@ -1,19 +1,9 @@
 import os
 import sys
-import csv
-import glob
 import datetime
 from decimal import Decimal
 
-from pyspark.sql import SparkSession
-from pyspark.sql import functions as F
-from pyspark.sql.types import StringType, IntegerType, DecimalType, LongType, \
-     DateType, TimestampType, StructType, StructField, ArrayType, BooleanType, FloatType, DoubleType
-
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from config.toml_config import config
-from schemas.gkg_schema import gkg_schema
-from etl.parse_gkg import *
 from etl.parse_downloads import download_parser
 
 
