@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 
 from schemas.gkg_schema import gkg_schema
-from etl.parse_gkg import parse_gkg
+from etl.parse_gkg import gkg_parser
 
 
 spark = SparkSession \
@@ -14,7 +14,6 @@ spark = SparkSession \
     .master('local[*]') \
     .appName('parse_gkg_test') \
     .getOrCreate()
-
 
 
 
@@ -26,7 +25,7 @@ gkg_translation_file = '/test/20210909034500.translation.gkg.csv'
 
 
 raw_gkg = spark.sparkContext.textFile(gkg_translation_file)
-parsed = raw_gkg.map(lambda Row: parse_gkg(Row))
+parsed = raw_gkg.map(lambda Row: gkg_parser(Row))
 
 
 
@@ -36,7 +35,7 @@ df.printSchema()
 # df.count()
 # df.show()
 
-# print(df.columns)
+print(df.columns)
 
 
 # df.write.mode('overwrite').parquet('/test_out/pyspark_out_test/_0.parquet')
@@ -67,8 +66,8 @@ df.select('GkgRecordId').show(truncate=False)                                   
 # df.select('V1Themes').filter('V1Themes IS NOT null').show()                                                   # looks OK - 
 # df.select('V2EnhancedThemes').filter('V2EnhancedThemes IS NOT null').show()                                   # OK
 # df.select('V2EnhancedThemes.V2Theme').filter('V2EnhancedThemes.V2Theme IS NOT null').show()                   # OK
-# df.select('V1Locations').filter('V1Locations IS NOT null').show()                                               # OK
-# df.select('V2Locations').filter('V2Locations IS NOT null').show()                                               # OK
+# df.select('V1Locations').filter('V1Locations IS NOT null').show()                                             # OK
+# df.select('V2Locations').filter('V2Locations IS NOT null').show()                                             # OK
 
 #########################################################
 
@@ -84,7 +83,7 @@ df.select('GkgRecordId').show(truncate=False)                                   
 #########################################################
 
 # df.select('V21EnhancedDates').show(truncate=False)                                                          # OK
-# df.select('V2GCAM').show(1, truncate=False)                                                                                  # OK
+# df.select('V2GCAM').show(1, truncate=False)                                                                 # OK
 # df.select('V21ShareImg').show(truncate=False)                                                               # OK
 # df.select('V21RelImg').filter('V21RelImg IS NOT null').show()                                               # OK                         
 # df.select('V21SocImage').filter('V21SocImage IS NOT null').show()                                           # OK
@@ -109,17 +108,17 @@ df.select('GkgRecordId').show(truncate=False)                                   
 
 # df.show()
 
-df.createOrReplaceTempView('gkg_file')
+# df.createOrReplaceTempView('gkg_file')
 
-anal_query = spark.sql("""
-                SELECT GkgRecordId, V2DocId, V2Persons, V15Tone.Tone
-                 FROM gkg_file
-                 WHERE array_contains(V2GCAM.DictionaryDimId, 'c8.19')
-                 GROUP BY GkgRecordId, V2DocId, V2Persons, V21ShareImg, V15Tone.Tone
-                 ORDER BY V15Tone.Tone ASC;
-                 """)
+# anal_query = spark.sql("""
+#                 SELECT GkgRecordId, V2DocId, V2Persons, V15Tone.Tone
+#                  FROM gkg_file
+#                  WHERE array_contains(V2GCAM.DictionaryDimId, 'c8.19')
+#                  GROUP BY GkgRecordId, V2DocId, V2Persons, V21ShareImg, V15Tone.Tone
+#                  ORDER BY V15Tone.Tone ASC;
+#                  """)
 
-anal_query.show(truncate=False)
+# anal_query.show(truncate=False)
 
 # gcam_query = spark.sql("""
                 # SELECT V2GCAM.DictionaryDimId, MAX(V2GCAM.Score) AS highest_score 
