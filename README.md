@@ -150,3 +150,7 @@ root
 ```
 ['GkgRecordId', 'V21Date', 'V2SrcCollectionId', 'V2SrcCmnName', 'V2DocId', 'V1Counts', 'V21Counts', 'V1Themes', 'V2EnhancedThemes', 'V1Locations', 'V2Locations', 'V1Persons', 'V2Persons', 'V1Orgs', 'V2Orgs', 'V15Tone', 'V21EnhancedDates', 'V2GCAM', 'V21ShareImg', 'V21RelImg', 'V21SocImage', 'V21SocVideo', 'V21Quotations', 'V21AllNames', 'V21Amounts', 'V21TransInfo', 'V2ExtrasXML']
 ```
+
+### Tests
+![parse_gkg_tests_passing](/screenshots/parse_gkg_tests_passing.png)
+![test_parse_gkg_tests_coverage](/screenshots/parse_gkg_tests_coverage.png)
