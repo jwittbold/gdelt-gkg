@@ -3,7 +3,7 @@
 
 [FS]
 # To execute on local file system set prefix equal to: 'file://'
-# To execute on local hadoop set prefix equal to empty striing: ''
+# To execute on hadoop set prefix equal to empty string: ''
 # To execute on Databricks set prefix equal to: '/mnt'
 PREFIX = 'file://'
 
