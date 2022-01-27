@@ -54,285 +54,297 @@ class GkgBatchWriter:
 
     def batch_processor(self):
 
+        try:
+            processor = GkgBatchWriter()
+            input_path = self.config['ETL']['PATHS']['RAW_IN']   
 
-        processor = GkgBatchWriter()
-        input_path = self.config['ETL']['PATHS']['RAW_IN']   
-
-        processor.period = self.config['BATCH']['PERIOD']
-        
-        processor.gkg_glob = glob.glob(f'{input_path}/*.csv')
-
-        processed_gkg = GkgBatchWriter().check_processed()
-
+            processor.period = self.config['BATCH']['PERIOD']
             
-        for gkg_file in sorted(processor.gkg_glob):
+            processor.gkg_glob = glob.glob(f'{input_path}/*.csv')
 
-            file_name = gkg_file.split('/')[-1]
+            processed_gkg = GkgBatchWriter().check_processed()
 
-            if file_name not in processed_gkg:
+                
+            for gkg_file in sorted(processor.gkg_glob):
 
-                processor.raw_input_path = input_path
-                processor.file_name = gkg_file.split('/')[-1].rstrip('.csv')
-                processor.numeric_date_str = gkg_file.split('/')[-1].split('.')[0]
-                processor.date_time = datetime.datetime.strptime(processor.numeric_date_str, '%Y%m%d%H%M%S')
-                processor.year = gkg_file.split('/')[-1].split('.')[0][:4]
-                processor.month = gkg_file.split('/')[-1].split('.')[0][4:6]
-                processor.day = gkg_file.split('/')[-1].split('.')[0][6:8]
-                processor.hour = gkg_file.split('/')[-1].split('.')[0][8:10]
-                processor.minute = gkg_file.split('/')[-1].split('.')[0][10:12]
-                processor.second = gkg_file.split('/')[-1].split('.')[0][12:14]
-                processor.gkg_version = processor.file_name[14:]
+                file_name = gkg_file.split('/')[-1]
 
+                if file_name not in processed_gkg:
 
-                if processor.period == '15min':
-                    gkg_key = f'{processor.year}{processor.month}{processor.day}{processor.hour}{processor.minute}|{processor.gkg_version}'
-                    etl_mode = '15min'
+                    processor.raw_input_path = input_path
+                    processor.file_name = gkg_file.split('/')[-1].rstrip('.csv')
+                    processor.numeric_date_str = gkg_file.split('/')[-1].split('.')[0]
+                    processor.date_time = datetime.datetime.strptime(processor.numeric_date_str, '%Y%m%d%H%M%S')
+                    processor.year = gkg_file.split('/')[-1].split('.')[0][:4]
+                    processor.month = gkg_file.split('/')[-1].split('.')[0][4:6]
+                    processor.day = gkg_file.split('/')[-1].split('.')[0][6:8]
+                    processor.hour = gkg_file.split('/')[-1].split('.')[0][8:10]
+                    processor.minute = gkg_file.split('/')[-1].split('.')[0][10:12]
+                    processor.second = gkg_file.split('/')[-1].split('.')[0][12:14]
+                    processor.gkg_version = processor.file_name[14:]
 
-                elif processor.period == 'hourly':
-                    gkg_key = f'{processor.year}{processor.month}{processor.day}{processor.hour}|{processor.gkg_version}'
-                    etl_mode = 'hourly'
-
-                elif processor.period == 'daily':
-                    gkg_key = f'{processor.year}{processor.month}{processor.day}|{processor.gkg_version}'
-                    etl_mode = 'daily'
-
-                else:
-                    raise ValueError("BATCH PERIOD must be set to 'daily', 'hourly', or '15min' within config.toml file.")
-
-                if gkg_key not in processor.gkg_dict:
-
-                    processor.gkg_dict[gkg_key] = ''
-
-                if gkg_key in processor.gkg_dict.keys():
-                    pass
-
-                for key in processor.gkg_dict:
 
                     if processor.period == '15min':
-                        prefix = key.split('|')[0]
-                        suffix = key[13:]
+                        gkg_key = f'{processor.year}{processor.month}{processor.day}{processor.hour}{processor.minute}|{processor.gkg_version}'
+                        etl_mode = '15min'
 
                     elif processor.period == 'hourly':
-                        prefix = key.split('|')[0]
-                        suffix = key[11:]
+                        gkg_key = f'{processor.year}{processor.month}{processor.day}{processor.hour}|{processor.gkg_version}'
+                        etl_mode = 'hourly'
 
                     elif processor.period == 'daily':
-                        prefix = key.split('|')[0]
-                        suffix = key[9:]
-                    
+                        gkg_key = f'{processor.year}{processor.month}{processor.day}|{processor.gkg_version}'
+                        etl_mode = 'daily'
+
                     else:
                         raise ValueError("BATCH PERIOD must be set to 'daily', 'hourly', or '15min' within config.toml file.")
 
-                    if gkg_file.startswith(f'{processor.raw_input_path}/{prefix}') and suffix == processor.gkg_version:
+                    if gkg_key not in processor.gkg_dict:
 
-                        # concat paths for use as large rdd
-                        processor.gkg_dict[key] += f'{FS_PREFIX}{gkg_file},'
+                        processor.gkg_dict[gkg_key] = ''
 
-            else:
-                print('GKG files already processed, passing.')
+                    if gkg_key in processor.gkg_dict.keys():
+                        pass
 
-        return processor.gkg_dict.values()
+                    for key in processor.gkg_dict:
+
+                        if processor.period == '15min':
+                            prefix = key.split('|')[0]
+                            suffix = key[13:]
+
+                        elif processor.period == 'hourly':
+                            prefix = key.split('|')[0]
+                            suffix = key[11:]
+
+                        elif processor.period == 'daily':
+                            prefix = key.split('|')[0]
+                            suffix = key[9:]
+                        
+                        else:
+                            raise ValueError("BATCH PERIOD must be set to 'daily', 'hourly', or '15min' within config.toml file.")
+
+                        if gkg_file.startswith(f'{processor.raw_input_path}/{prefix}') and suffix == processor.gkg_version:
+
+                            # concat paths for use as large rdd
+                            processor.gkg_dict[key] += f'{FS_PREFIX}{gkg_file},'
+
+                else:
+                    print('GKG files already processed, passing.')
+
+            return processor.gkg_dict.values()
+        
+        except Exception as e:
+            print(f'Encountered exception when processing batch: {e}')
 
     
     def check_processed(self):
 
-        if os.path.exists(PIPELINE_METRICS):
-            pipeline_metrics_df = spark.read.format('parquet').load(f'{FS_PREFIX}{PIPELINE_METRICS}/*.parquet') 
-            unique_metrics_df = pipeline_metrics_df.dropDuplicates(['file_name', 'gkg_timestamp'])
+        try:
+            if os.path.exists(PIPELINE_METRICS):
+                pipeline_metrics_df = spark.read.format('parquet').load(f'{FS_PREFIX}{PIPELINE_METRICS}/*.parquet') 
+                unique_metrics_df = pipeline_metrics_df.dropDuplicates(['file_name', 'gkg_timestamp'])
+                processed_gkg_array = unique_metrics_df.select('file_name').rdd.flatMap(lambda row: row).collect()
+                
+                return processed_gkg_array
 
-            processed_gkg_array = unique_metrics_df.select('file_name').rdd.flatMap(lambda row: row).collect()
+            else:
+                return []
+
+        except Exception as e:
+            print(f'\nEncountered exception when checking for processed files in pipeline_metrics folder. \
+                \nIf pipeline_metrics folder exists but is empty, delete pipeline_metrics folder and try again:\n{e}')
             
-            return processed_gkg_array
-
-        else:
-            return []
-
 
 
     def write_batch(self):
 
-        etl_out_path = self.config['ETL']['PATHS']['TRANSFORMED_OUT']
 
-        rdd_paths = GkgBatchWriter().batch_processor()
+        try:
+            etl_out_path = self.config['ETL']['PATHS']['TRANSFORMED_OUT']
 
-        writer = GkgBatchWriter()
-        writer.period = self.config['BATCH']['PERIOD']
+            rdd_paths = GkgBatchWriter().batch_processor()
 
-        processed_gkg = GkgBatchWriter().check_processed()
+            writer = GkgBatchWriter()
+            writer.period = self.config['BATCH']['PERIOD']
 
+            processed_gkg = GkgBatchWriter().check_processed()
 
-        
-        for value in rdd_paths:
-
-            single_path = value.split(',')[0]
-
-            writer.file_name = single_path.split('/')[-1]
-            writer.numeric_date_str = value.split('/')[-1].split('.')[0]
-            writer.date_time = datetime.datetime.strptime(writer.numeric_date_str, '%Y%m%d%H%M%S')
-            writer.year = value.split('/')[-1].split('.')[0][:4]
-            writer.month = value.split('/')[-1].split('.')[0][4:6]
-            writer.day = value.split('/')[-1].split('.')[0][6:8]
-            writer.hour = value.split('/')[-1].split('.')[0][8:10]
-            writer.minute = value.split('/')[-1].split('.')[0][10:12]
-            writer.second = value.split('/')[-1].split('.')[0][12:14]
-            writer.gkg_version = writer.file_name[14:]
-
-            if writer.gkg_version == '.translation.gkg.csv':
-                writer.translingual = True
-                version = 'translingual'
-            else:
-                writer.translingual = False
-                version = 'eng'
-
-
-
-            ########################################################################################
-            ###########################      GKG BLOCK FROM URLS     ############################### 
-            ######################################################################################## 
-
-            gkg_paths = value[:-1]
-            gkg_block_rdd = spark.sparkContext.textFile(gkg_paths)
-            parsed = gkg_block_rdd.map(lambda line: gkg_parser(line))
-            gkg_block_df = spark.createDataFrame(parsed, schema=gkg_schema)
-
-
-            # print(gkg_paths)
-
-
-            ########################################################################################
-            #####################      WRITE OUT 15min / hourly mode     ########################### 
-            ########################################################################################   
-
-            if writer.period == '15min' or writer.period == 'hourly':
-                print(f'Writing GKG records in {(writer.period).upper()} mode')
-                gkg_block_df\
-                    .coalesce(1) \
-                    .write \
-                    .mode('append') \
-                    .parquet(f'{FS_PREFIX}{etl_out_path}/{version}/{writer.year}/{writer.month}/{writer.day}/')
-                print(f'Successfully wrote ** {version.upper()} ** DF in {(writer.period).upper()} \
-                        mode to path: {etl_out_path}/{version}/{writer.year}/{writer.month}/{writer.day}')
-
-
-
-
-                ########################################################################################
-                ##################     JOIN DOWNLOAD METRICS TO GKG METRICS     ######################## 
-                ######################################################################################## 
-                gkg_batch_df = spark.read \
-                                .format('parquet') \
-                                .schema(gkg_schema) \
-                                .load(f'{FS_PREFIX}{etl_out_path}/{version}/{writer.year}/{writer.month}/{writer.day}/*.parquet')
-                
-
-                gkg_metrics = gkg_batch_df \
-                                    .select([
-                                        F.col('GkgRecordId.Date').alias('gkg_record_id_a'), \
-                                        F.col('GkgRecordId.Translingual').alias('translingual_a')]) \
-                                        .withColumn('etl_timestamp', F.lit(datetime.datetime.now().isoformat(timespec='seconds', sep=' ')).cast(TimestampType())) \
-                                    .groupBy('gkg_record_id_a', 'translingual_a', 'etl_timestamp') \
-                                    .count() \
-                                    .withColumnRenamed('count', 'total_rows')
-                                                        
-
-                download_metrics_df = spark.read.parquet(f'{FS_PREFIX}{DOWNLOAD_METRICS}/*.parquet')
-
-
-                joined_metrics = download_metrics_df.join(F.broadcast(gkg_metrics),
-                                                                    on=[ download_metrics_df.gkg_record_id == gkg_metrics.gkg_record_id_a,
-                                                                        download_metrics_df.translingual == gkg_metrics.translingual_a],
-                                                                    how='right') 
-                                                                                                                            
-                pipeline_metrics = joined_metrics.select('gkg_record_id', 'translingual', 'file_name', 'gkg_timestamp', 
-                                                        'local_download_time', 'etl_timestamp', 'csv_size_mb', 'total_rows') 
-                
-                
-                ########################################################################################
-                ##################          WRITE OUT PIPELINE METRICS          ######################## 
-                ######################################################################################## 
-                
-                pipeline_metrics.coalesce(1) \
-                    .write \
-                    .mode('append') \
-                    .format('parquet') \
-                    .save(f'{FS_PREFIX}{PIPELINE_METRICS}') 
-                
-
-
-
-            ########################################################################################
-            ##########################      WRITE OUT DAILY MODE     ############################### 
-            ########################################################################################     
             
-            else:
-                print(f'Writing GKG records in {(writer.period).upper()} mode')
-                gkg_block_df \
-                        .repartition(5) \
+            for value in rdd_paths:
+
+                single_path = value.split(',')[0]
+
+                writer.file_name = single_path.split('/')[-1]
+                writer.numeric_date_str = value.split('/')[-1].split('.')[0]
+                writer.date_time = datetime.datetime.strptime(writer.numeric_date_str, '%Y%m%d%H%M%S')
+                writer.year = value.split('/')[-1].split('.')[0][:4]
+                writer.month = value.split('/')[-1].split('.')[0][4:6]
+                writer.day = value.split('/')[-1].split('.')[0][6:8]
+                writer.hour = value.split('/')[-1].split('.')[0][8:10]
+                writer.minute = value.split('/')[-1].split('.')[0][10:12]
+                writer.second = value.split('/')[-1].split('.')[0][12:14]
+                writer.gkg_version = writer.file_name[14:]
+
+                if writer.gkg_version == '.translation.gkg.csv':
+                    writer.translingual = True
+                    version = 'translingual'
+                else:
+                    writer.translingual = False
+                    version = 'eng'
+
+
+
+                ########################################################################################
+                ###########################      GKG BLOCK FROM URLS     ############################### 
+                ######################################################################################## 
+
+                gkg_paths = value[:-1]
+                gkg_block_rdd = spark.sparkContext.textFile(gkg_paths)
+                parsed = gkg_block_rdd.map(lambda line: gkg_parser(line))
+                gkg_block_df = spark.createDataFrame(parsed, schema=gkg_schema)
+
+
+
+                ########################################################################################
+                #####################      WRITE OUT 15min / hourly mode     ########################### 
+                ########################################################################################   
+
+                if writer.period == '15min' or writer.period == 'hourly':
+                    print(f'Writing GKG records in {(writer.period).upper()} mode')
+                    gkg_block_df\
+                        .coalesce(1) \
                         .write \
-                        .option('maxRecordsPerFile', 30000) \
                         .mode('append') \
                         .parquet(f'{FS_PREFIX}{etl_out_path}/{version}/{writer.year}/{writer.month}/{writer.day}/')
-                print(f'Successfully wrote ** {version.upper()} ** DF in {(writer.period).upper()} \
-                        mode to path: {etl_out_path}/{version}/{writer.year}/{writer.month}/{writer.day}')
-                
+                    print(f'Successfully wrote ** {version.upper()} ** DF in {(writer.period).upper()} mode to path: {etl_out_path}/{version}/{writer.year}/{writer.month}/{writer.day}')
+
+
+
+                    ########################################################################################
+                    ##################     JOIN DOWNLOAD METRICS TO GKG METRICS     ######################## 
+                    ######################################################################################## 
+                    
+                    gkg_batch_df = spark.read \
+                                    .format('parquet') \
+                                    .schema(gkg_schema) \
+                                    .load(f'{FS_PREFIX}{etl_out_path}/{version}/{writer.year}/{writer.month}/{writer.day}/*.parquet')
+                    
+
+                    gkg_metrics = gkg_batch_df \
+                                        .select([
+                                            F.col('GkgRecordId.Date').alias('gkg_record_id_a'), \
+                                            F.col('GkgRecordId.Translingual').alias('translingual_a')]) \
+                                            .withColumn('etl_timestamp', F.lit(datetime.datetime.now().isoformat(timespec='seconds', sep=' ')) \
+                                            .cast(TimestampType())) \
+                                        .groupBy('gkg_record_id_a', 'translingual_a', 'etl_timestamp') \
+                                        .count() \
+                                        .withColumnRenamed('count', 'total_rows')
+                                                            
+
+                    download_metrics_df = spark.read.parquet(f'{FS_PREFIX}{DOWNLOAD_METRICS}/*.parquet')
+
+
+                    joined_metrics = download_metrics_df.join(F.broadcast(gkg_metrics),
+                                                                        on=[ download_metrics_df.gkg_record_id == gkg_metrics.gkg_record_id_a,
+                                                                            download_metrics_df.translingual == gkg_metrics.translingual_a],
+                                                                        how='right') 
+                                                                                                                                
+                    pipeline_metrics = joined_metrics.select('gkg_record_id', 'translingual', 'file_name', 'gkg_timestamp', 
+                                                            'local_download_time', 'etl_timestamp', 'csv_size_mb', 'total_rows') 
+                    
+                    
+                    ########################################################################################
+                    ##################          WRITE OUT PIPELINE METRICS          ######################## 
+                    ######################################################################################## 
+                    
+                    pipeline_metrics.coalesce(1) \
+                        .write \
+                        .mode('append') \
+                        .format('parquet') \
+                        .save(f'{FS_PREFIX}{PIPELINE_METRICS}') 
+                    
 
 
                 ########################################################################################
-                ##################     JOIN DOWNLOAD METRICS TO GKG METRICS     ######################## 
-                ######################################################################################## 
+                ##########################      WRITE OUT DAILY MODE     ############################### 
+                ########################################################################################     
                 
-                gkg_batch_df = spark.read \
-                                .format('parquet') \
-                                .schema(gkg_schema) \
-                                .load(f'{FS_PREFIX}{etl_out_path}/{version}/{writer.year}/{writer.month}/{writer.day}/*.parquet') 
-                
-
-                gkg_metrics = gkg_batch_df \
-                                    .select([
-                                        F.col('GkgRecordId.Date').alias('gkg_record_id_a'), \
-                                        F.col('GkgRecordId.Translingual').alias('translingual_a')]) \
-                                        .withColumn('etl_timestamp', F.lit(datetime.datetime.now().isoformat(timespec='seconds', sep=' ')).cast(TimestampType())) \
-                                    .groupBy('gkg_record_id_a', 'translingual_a', 'etl_timestamp') \
-                                    .count() \
-                                    .withColumnRenamed('count', 'total_rows') 
-                                                        
-
-                download_metrics_df = spark.read.parquet(f'{FS_PREFIX}{DOWNLOAD_METRICS}/*.parquet')
-
-                
-                # rewrite as a right join broadcast batch df
-                joined_metrics = gkg_metrics.join(F.broadcast(download_metrics_df), 
-                                                                on=[ download_metrics_df.gkg_record_id == gkg_metrics.gkg_record_id_a,
-                                                                    download_metrics_df.translingual == gkg_metrics.translingual_a],
-                                                                how='left') 
-
-                # joined_metrics = download_metrics_df.join(F.broadcast(gkg_metrics),
-                #                                                     on=[ download_metrics_df.gkg_record_id == gkg_metrics.gkg_record_id_a,
-                #                                                         download_metrics_df.translingual == gkg_metrics.translingual_a],
-                #                                                     how='right') 
-                
-                                                                                                                                        
-                pipeline_metrics = joined_metrics.select('gkg_record_id', 'translingual', 'file_name', 'gkg_timestamp', 
-                                                        'local_download_time', 'etl_timestamp', 'csv_size_mb', 'total_rows') 
-
-                
-                
-                ########################################################################################
-                ##################          WRITE OUT PIPELINE METRICS          ######################## 
-                ######################################################################################## 
-                pipeline_metrics.coalesce(1) \
-                    .write \
-                    .mode('append') \
-                    .format('parquet') \
-                    .save(f'{FS_PREFIX}{PIPELINE_METRICS}') 
+                else:
+                    print(f'Writing GKG records in {(writer.period).upper()} mode')
+                    gkg_block_df \
+                            .repartition(5) \
+                            .write \
+                            .option('maxRecordsPerFile', 30000) \
+                            .mode('append') \
+                            .parquet(f'{FS_PREFIX}{etl_out_path}/{version}/{writer.year}/{writer.month}/{writer.day}/')
+                    print(f'Successfully wrote ** {version.upper()} ** DF in {(writer.period).upper()} mode to path: {etl_out_path}/{version}/{writer.year}/{writer.month}/{writer.day}')
+                    
 
 
+                    ########################################################################################
+                    ##################     JOIN DOWNLOAD METRICS TO GKG METRICS     ######################## 
+                    ######################################################################################## 
+                    
+                    gkg_batch_df = spark.read \
+                                    .format('parquet') \
+                                    .schema(gkg_schema) \
+                                    .load(f'{FS_PREFIX}{etl_out_path}/{version}/{writer.year}/{writer.month}/{writer.day}/*.parquet') 
+                    
+
+                    gkg_metrics = gkg_batch_df \
+                                        .select([
+                                            F.col('GkgRecordId.Date').alias('gkg_record_id_a'), \
+                                            F.col('GkgRecordId.Translingual').alias('translingual_a')]) \
+                                            .withColumn('etl_timestamp', F.lit(datetime.datetime.now().isoformat(timespec='seconds', sep=' ')) \
+                                            .cast(TimestampType())) \
+                                        .groupBy('gkg_record_id_a', 'translingual_a', 'etl_timestamp') \
+                                        .count() \
+                                        .withColumnRenamed('count', 'total_rows') 
+                                                            
+
+                    download_metrics_df = spark.read.parquet(f'{FS_PREFIX}{DOWNLOAD_METRICS}/*.parquet')
+
+                    
+                    # rewrite as a right join broadcast batch df
+                    joined_metrics = gkg_metrics.join(F.broadcast(download_metrics_df), 
+                                                                    on=[ download_metrics_df.gkg_record_id == gkg_metrics.gkg_record_id_a,
+                                                                        download_metrics_df.translingual == gkg_metrics.translingual_a],
+                                                                    how='left') 
+
+                    # joined_metrics = download_metrics_df.join(F.broadcast(gkg_metrics),
+                    #                                                     on=[ download_metrics_df.gkg_record_id == gkg_metrics.gkg_record_id_a,
+                    #                                                         download_metrics_df.translingual == gkg_metrics.translingual_a],
+                    #                                                     how='right') 
+                    
+                                                                                                                                            
+                    pipeline_metrics = joined_metrics.select('gkg_record_id', 'translingual', 'file_name', 'gkg_timestamp', 
+                                                            'local_download_time', 'etl_timestamp', 'csv_size_mb', 'total_rows') 
+
+                    
+                    
+                    ########################################################################################
+                    ##################          WRITE OUT PIPELINE METRICS          ######################## 
+                    ######################################################################################## 
+                    
+                    pipeline_metrics.coalesce(1) \
+                        .write \
+                        .mode('append') \
+                        .format('parquet') \
+                        .save(f'{FS_PREFIX}{PIPELINE_METRICS}')
+
+            return True
+
+        except Exception as e:
+            print(f'Encountered exception when writing batch: {e}')
+            return False
 
 
-GkgBatchWriter().write_batch()
+if __name__ == '__main__':
+
+    GkgBatchWriter().write_batch()
 
 
-
+# DEBUG
 print('AS READ IN AS PARQUET WITH DROP DUPLICATES')
 pipeline_metrics_df = spark.read.format('parquet').load(f'{FS_PREFIX}{PIPELINE_METRICS}/*.parquet') 
 unique_metrics_df = pipeline_metrics_df.dropDuplicates(['file_name', 'gkg_timestamp'])

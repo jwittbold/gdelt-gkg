@@ -18,16 +18,16 @@ from etl.parse_gkg import *
 
 # FS_PREFIX = f"{config['FS']['PREFIX']}"
 
-# spark = SparkSession \
-#     .builder \
-#     .master('local[*]') \
-#     .appName('write_transformed_gkg') \
-#     .getOrCreate()
+spark = SparkSession \
+    .builder \
+    .master('local[*]') \
+    .appName('write_transformed_gkg') \
+    .getOrCreate()
 
-# data_file = 'file:///Users/jackwittbold/Desktop/gdelt_data/TEST_RUN/raw_gkg/20211021000000.gkg.csv'
-# raw_gkg = spark.sparkContext.textFile(data_file)
-# parsed = raw_gkg.map(lambda Row: gkg_parser(Row))
-# df = spark.createDataFrame(parsed, schema=gkg_schema)
+data_file = 'file:///Users/jackwittbold/Desktop/gdelt_data/TEST_RUN/raw_gkg/20211021000000.gkg.csv'
+raw_gkg = spark.sparkContext.textFile(data_file)
+parsed = raw_gkg.map(lambda Row: gkg_parser(Row))
+df = spark.createDataFrame(parsed, schema=gkg_schema)
 
 
 
@@ -43,7 +43,7 @@ with open(csv_file, newline='', encoding='ISO-8859-1') as f:
 first_row = row_list[0]
 
 
-# df.select('GkgRecordId').show(truncate=False)
+df.select('GkgRecordId').show(truncate=False)
 def test_create_gkg_record_id():
 
     assert create_gkg_record_id(first_row[0]) == (20211021000000, False, 0)
@@ -73,12 +73,6 @@ def test_create_v2_doc_id():
     assert create_v2_doc_id(first_row[4]) == Row('https://www.bryantimes.com/news/local/brown-supporting-child-suicide-prevention-bill/article_cd0acb20-a05e-5cf3-b9dc-3949a8746dfb.html')
 
 
-# # V1Count
-# def test_create_v1_count():
-
-#     assert create_v1_count(first_row[5]) == ('KILL', 13, '', 1, 'United States', 'US', 'US', Decimal('39.828175'), Decimal('-98.5795'), 'US;CRISISLEX_T03_DEAD')
-
-
 # V1Count Array
 # df.select('V1Counts').show(truncate=False)
 def test_create_v1_count_array():
@@ -86,12 +80,6 @@ def test_create_v1_count_array():
     assert create_v1_count_array(first_row[5]) == [('KILL', 13, '', 1, 'United States', 'US', 'US', round(Decimal(39.828175), 6), round(Decimal(-98.5795), 4), 'US'), \
                                                 ('CRISISLEX_T03_DEAD', 13, '', 1, 'United States', 'US', 'US', round(Decimal(39.828175), 6), round(Decimal(-98.5795), 4), 'US'), \
                                                 ('CRISISLEX_T03_DEAD', 13, '', 1, 'United States', 'US', 'US', round(Decimal(39.828175), 6), round(Decimal(-98.5795), 4), 'US')]
-
-
-# # V21 Count
-# def test_create_v21_count():
-
-#     assert create_v21_count(first_row[6]) == ('KILL', 13, '', 1, 'United States', 'US', 'US', Decimal('39.828175'), Decimal('-98.5795'), 'US;CRISISLEX_T03_DEAD', 1402)
 
 
 # V21Count Array
@@ -408,46 +396,3 @@ def test_gkg_parser():
                                             test_create_v21_enhanced_dates(), test_create_v2_gcam(), test_create_v21_share_img(), test_create_v21_rel_img(), \
                                             test_create_v21_soc_img(), test_create_v21_soc_vid(), test_create_v21_quotes_array(), test_create_v21_all_names(), \
                                             test_create_v21_amounts(), test_create_v21_trans_info(), test_create_v2_extras_xml())
-
-
-    # gkg_record_id = test_create_gkg_record_id()
-    # v21_date = test_create_v21_date()
-    # v2_src_collection_id = test_create_v2_src_collection_id()
-    # v2_src_common_name = test_create_v2_src_common_name()
-    # v2_doc_id = test_create_v2_doc_id()
-    # v1_counts = test_create_v1_count_array()
-    # v21_counts = test_create_v21_count_array()
-    # v1_themes = test_create_v1_themes_array()
-    # v2_enhanced_themes = test_create_v2_enhanced_themes_array()
-    # v1_locations = test_create_v1_locations_array()
-    # v2_enhanced_locations = test_create_v2_enhanced_locations_array()
-    # v1_persons = test_create_v1_persons_array()
-    # v2_enhanced_persons = test_create_v2_enhanced_persons()
-    # v1_orgs = test_create_v1_orgs()
-    # v2_enhanced_orgs = test_create_v2_enhanced_orgs()
-    # v15_tone = test_create_v15_tone()
-    # v21_enhanced_dates = test_create_v21_enhanced_dates()
-    # v2_gcam = test_create_v2_gcam()
-    # v21_share_img = test_create_v21_share_img()
-    # v21_rel_img = test_create_v21_rel_img()
-    # v21_soc_img = test_create_v21_soc_img()
-    # v21_soc_vid = test_create_v21_soc_vid()
-    # v21_quotes = test_create_v21_quotes_array()
-    # v21_all_names = test_create_v21_all_names()
-    # v21_amounts = test_create_v21_amounts()
-    # v21_trans_info = test_create_v21_trans_info()
-    # v2_extras_xml = test_create_v2_extras_xml()
-
-    # gkg_record = gkg_record_id, v21_date, v2_src_collection_id, v2_src_common_name, \
-    #                 v2_doc_id, v1_counts, v21_counts, v1_themes, v2_enhanced_themes, \
-    #                 v1_locations, v2_enhanced_locations, v1_persons, v2_enhanced_persons, \
-    #                 v1_orgs, v2_enhanced_orgs, v15_tone, v21_enhanced_dates, v2_gcam, \
-    #                 v21_share_img, v21_rel_img, v21_soc_img, v21_soc_vid, v21_quotes, \
-    #                 v21_all_names, v21_amounts, v21_trans_info, v2_extras_xml
-
-    # assert gkg_parser(line=str(first_row)) == (gkg_record_id, v21_date, v2_src_collection_id, v2_src_common_name, v2_doc_id, 
-    #                                             v1_counts, v21_counts, v1_themes, v2_enhanced_themes, v1_locations, v2_enhanced_locations,
-    #                                             v1_persons, v2_enhanced_persons, v1_orgs, v2_enhanced_orgs, v15_tone, v21_enhanced_dates, 
-    #                                             v2_gcam, v21_share_img, v21_rel_img, v21_soc_img, v21_soc_vid, v21_quotes, v21_all_names,
-    #                                             v21_amounts, v21_trans_info, v2_extras_xml)
-

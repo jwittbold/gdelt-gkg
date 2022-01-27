@@ -74,7 +74,6 @@ class V21Count:
             self.country_code,self.ADM1_code,self.latitude,self.longitude,self.feature_id,self.char_offset
 
 
-
 class Location:
 
     def __init__(self):
@@ -109,7 +108,6 @@ class EnhancedLocation:
             self.latitude,self.longitude,self.feature_id,self.char_offset
 
 
-
 class EnhancedPerson:
 
     def __init__(self):
@@ -118,15 +116,6 @@ class EnhancedPerson:
 
     def values(self):
         return self.person,self.char_offset
-
-
-# class V1Theme:
-
-#     def __init__(self):
-#         self.theme = str('')
-    
-#     def values(self):
-#         return self.theme
 
 
 class EnhancedTheme:
@@ -594,7 +583,7 @@ def create_v1_locations_array(str_: str):
 ##################            V2 ENHANCED LOCATIONS           ######################
 ####################################################################################
 
-# # 10
+# 10
 def create_v2_enhanced_location(str_: str):
 
     v2_enhanced_location = EnhancedLocation()
@@ -995,7 +984,7 @@ def create_v21_trans_info(str_: str):
 
 
 ####################################################################################
-##################               V21 EXTRAS XML                #####################
+##################               V2 EXTRAS XML                 #####################
 ####################################################################################
 
 # 26 

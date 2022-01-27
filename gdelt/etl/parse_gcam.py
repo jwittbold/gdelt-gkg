@@ -1,44 +1,4 @@
-# from pyspark.sql import SparkSession
-# import requests
-# from gcam_schema import GCAM_schema
-
-# import sys
-# sys.path.append("..")
-# from gdelt.schemas.gcam_schema import GCAM_schema
-
-# import sys
-# import os
-# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-# from schemas.gcam_schema import GCAM_schema
-
-
-
-
-# gcam_codebook_url = 'http://data.gdeltproject.org/documentation/GCAM-MASTER-CODEBOOK.TXT'
-
-# r = requests.get(gcam_codebook_url, stream=True)
-# if not r.ok:
-#     print(f'request returned with code {r.status_code}')
-
-
-
-# spark = SparkSession \
-#     .builder \
-#     .master('local[*]') \
-#     .appName('parse_gcam') \
-#     .getOrCreate()
-
-
-# gcam_codebook = 'file:///Users/jackwittbold/Desktop/Springboard_Data_Engineering/Capstone_Master/gdelt_repository/codebooks/gcam_master_codebook.txt'
-
-# /Users/jackwittbold/Desktop/Springboard_Data_Engineering/Capstone_Master/gdelt_repo/codebooks/gcam_master_codebook.txt
-
-
-
-# gcam_df = spark.read.text(gcam_codebook)
-# gcam_df.show(2, truncate=False)
-
-
+# class for parsing the GCAM codebook
 class GcamCodebook:
 
     def __init__(self):
@@ -72,8 +32,7 @@ class GcamCodebook:
             self.dict_human_name, self.dim_human_name, self.dict_citation
 
 
-
-def parse_gcam_codebook(line):
+def gcam_codebook_parser(line):
 
     val = line.split('\t', -1)
     if len(val) == 8:
@@ -94,20 +53,3 @@ def parse_gcam_codebook(line):
                 print(e)
                     
         return gcam_codes.values()
-
-
-# gcam_rdd = spark.sparkContext.parallelize([r.content])
-# gcam_rdd = spark.sparkContext.textFile(gcam_codebook)
-
-# header = gcam_rdd.first()
-
-# gcam_rdd_body = gcam_rdd.filter(lambda row: row != header)
-
-# gcam_parsed = gcam_rdd_body.map(lambda line: parse_gcam_codebook(line))
-
-# gcam_df = spark.createDataFrame(gcam_parsed, schema=GCAM_schema)
-
-# gcam_df.show()
-
-# print(gcam_df.count())
-
