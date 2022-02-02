@@ -12,7 +12,7 @@ from pyspark.sql import functions as F
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from config.toml_config import config
 from etl.parse_downloads import download_parser
-from etl.parse_gkg_url import parse_url
+from etl.parse_gkg_url import gkg_url_parser
 from schemas.pipeline_metrics_schema import metrics_schema
 from schemas.gkg_url_schema import url_schema
 
@@ -110,7 +110,7 @@ class Scraper:
             print('Current ** Download Metrics ** DF:')
             download_metrics_df = spark.read.parquet(f"{FS_PREFIX}{config['SCRAPER']['DOWNLOAD_METRICS']}/*.parquet")
 
-            download_metrics_df.orderBy(F.col('gkg_timestamp').desc()).show(truncate=False)
+            download_metrics_df.orderBy(F.col('gkg_timestamp').desc()).show(200, truncate=False)
             print(f'Total downloaded GKG files: {download_metrics_df.count()}')
 
 
@@ -129,11 +129,25 @@ class Scraper:
 
         if file_uri in gkg_glob:
         
-            print(f'GKG file: {download_file_name} already downloaded. SKIPPING.')
+            print(f'Latest GKG file: {download_file_name} already downloaded. SKIPPING.')
             return True
 
         else:
             return False
+
+    def return_existing():
+
+        gkg_glob = sorted(glob.glob(f'{DOWNLOAD_PATH}/*.csv'))
+
+        existing_gkg_array = []
+        for gkg_uri in gkg_glob:
+
+            prefix = 'http://data.gdeltproject.org/gdeltv2/'
+            only_file_name = gkg_uri.split('/')[-1]
+            full_url = f'{prefix}{only_file_name}.zip'
+            existing_gkg_array.append(full_url)
+            
+        return existing_gkg_array
 
 
     def download_extract(self, url: str):
@@ -202,13 +216,13 @@ class Scraper:
             end_timestamp = datetime.datetime.strptime(end_date, '%Y-%m-%d') - datetime.timedelta(minutes=15)
             print(f'Downloading GKG records for date range: {start_timestamp} to {end_timestamp}')
             
-        print(f'\nLast Download Date: {last_download_date}')
+        print(f'\nLast Download Date: {last_download_date} UTC')
         
         # checks if desired GKG files should download starting from last downloaded file or 
         # from a different start_date specified in config.toml -- for downloading different GKG date ranges
         if from_last == True:
             start_date = last_download_date
-            print(f'Setting download start date to last downloaded record: {start_date}')
+            print(f'Setting download start date to last downloaded record: {start_date} UTC')
             print(f'config.toml START_DATE: {start_timestamp}')
         else:
             start_date = start_date
@@ -309,6 +323,8 @@ class Scraper:
 
 if __name__ == '__main__':
 
+    existing_gkg = Scraper.return_existing()
+
     # set scraper params to config file params
     scraper_values = Scraper(config).feed_parser(spark=spark,
                                                 start_date=config['SCRAPER']['START_DATE'],
@@ -323,13 +339,15 @@ if __name__ == '__main__':
     url_rdd.foreach(lambda url: Scraper(config).download_extract(url))
 
     # parse values from RDD to create DF of URLs downloaded (for debug purposes only, DF is not written out) 
-    # will show duplicates for files for dates equal to last download date (1 or 2 previously downloaded files)
-    # those files are in fact skipped
-    downloaded_gkg = url_rdd.map(lambda x: parse_url(x))
+    downloaded_gkg = url_rdd.map(lambda x: gkg_url_parser(x))
     downloaded_gkg_df = spark.createDataFrame(downloaded_gkg, schema=url_schema)
-    print("\nCandidate GKG URLs for download - for DEBUG purposed only - files already downloaded will be marked 'SKIPPING' above.")
-    downloaded_gkg_df.show(truncate=False)
-    print(f'Number of candidate GKG files for current download: {downloaded_gkg_df.count()}')
+    
+    print("\nNewly downloaded GKG Files:")
+    new_gkg = downloaded_gkg_df.select('*').filter(F.col('gkg_url').isin(existing_gkg) == False)
+    new_gkg.orderBy(F.col('numeric_date_time').asc()).show(200, truncate=False)
+    print(f'Number of GKG files in current download: {new_gkg.count()}')
+
+
 
     # Write download_metrics DF 
     Scraper.download_metrics(spark)

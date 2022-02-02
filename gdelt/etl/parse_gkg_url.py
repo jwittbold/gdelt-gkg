@@ -18,8 +18,7 @@ class GkgUrlParser:
         return self.date_time, self.url_suffix, self.gkg_url
 
     
-
-def parse_url(url):
+def gkg_url_parser(url):
 
         try:
             parsed_gkg_url = GkgUrlParser(
