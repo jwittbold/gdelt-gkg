@@ -8,16 +8,11 @@ import sys
 import os
 
 
+GDELT_HOME = os.environ.get('GDELT_HOME')
 
-# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-scraper_entry_point = os.path.join(os.environ['PYTHONPATH'], 'scrapers/gkg_scraper.py')
-etl_entry_point = os.path.join(os.environ['PYTHONPATH'], 'etl/execute_etl.py')
-dependency_path = os.path.join(os.environ['AIRFLOW_HOME'], 'dags/gdelt_pipeline.zip')
-
-# scraper_entry_point = os.path.join(os.environ['GDELT_HOME'], 'scrapers/gkg_scraper.py')
-# etl_entry_point = os.path.join(os.environ['GDELT_HOME'], 'etl/execute_etl.py')
-# dependency_path = os.path.join(os.environ['AIRFLOW_HOME'], 'dags/gdelt_pipeline.zip')
+scraper_entry_point = os.path.join(os.environ['GDELT_HOME'], 'scrapers/gkg_scraper.py')
+etl_entry_point = os.path.join(os.environ['GDELT_HOME'], 'etl/execute_etl.py')
+dependency_path = os.path.join(os.environ['GDELT_HOME'], 'dependencies/gdelt_dependencies.zip')
 
 
 ########################################################################
@@ -26,9 +21,9 @@ dependency_path = os.path.join(os.environ['AIRFLOW_HOME'], 'dags/gdelt_pipeline.
 
 custom_args = {
     'owner': 'Jack Wittbold',
-    # 'email': ['airflow.job.status@gmail.com'],
-    # 'email_on_failure': True,
-    # 'email_on_success': True,
+    'email': ['airflow.job.status@gmail.com'],
+    'email_on_failure': True,
+    'email_on_success': False,
     'retries': 2,
     'retry_delay': timedelta(minutes=2)
 }
@@ -40,7 +35,7 @@ gkg_pipeline = DAG(
     default_args=custom_args,
     description='Download and perfrom ETL on GDELT GKG files',
     catchup=False,
-    schedule_interval='*/10 * * * *' # run every 10 minutes
+    schedule_interval='*/12 * * * *' # run every 12 minutes (5 times per hour)
 )
 
 
